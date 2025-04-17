@@ -38,6 +38,10 @@ with st.sidebar:
         disabled=st.session_state.running
     )
     
+    ## Context Markdown
+    st.markdown(
+        f"**Context:** WIP"
+    )
     
     # Simulated second sidebar using expander
     with st.expander("📂 Document Uploader", expanded=False):
@@ -57,7 +61,6 @@ with st.sidebar:
     
     
 
-
 # Main page content
 st.title(f"Interview Assistant for Job position {job_position}")
 
@@ -71,4 +74,12 @@ st.markdown(
     f"<p style='font-size:30px; color:White;'> <b>Question: </b><br> {st.session_state.question}</p>",
     unsafe_allow_html=True
 )
+
+
+# Conditional markdown sfor answer
+if st.session_state.question:
+    msg = f"<p style='font-size:30px; color:White;'><b>Answer: </b><br> Answer WIP </p>"
+else:
+    msg = ""
+st.markdown(msg, unsafe_allow_html=True)
 
