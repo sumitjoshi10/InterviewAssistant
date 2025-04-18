@@ -1,23 +1,35 @@
 import streamlit as st
-
-# Callback function to toggle the state
-def toggle():
-    st.session_state.running = not st.session_state.running
-    if st.session_state.running:
-        st.session_state.question = ""
-    else:
-        st.session_state.question = "From Mic"
-    
-# Callback function when Enter is pressed
-def handle_submit():
-    st.session_state.question = st.session_state.user_input
-    st.session_state.user_input = ""  # Clear input
+from models import MicrophoneAccess
 
 # Initialize the state
 if "running" not in st.session_state:
     st.session_state.running = False
 if "question" not in st.session_state:
     st.session_state.question = ""
+if "transcript" not in st.session_state:
+    st.session_state.transcript = []
+if "mic" not in st.session_state:
+    st.session_state.mic = MicrophoneAccess()
+
+
+# Callback function to toggle the state
+def toggle():
+    st.session_state.running = not st.session_state.running
+    if st.session_state.running:
+        st.session_state.transcript = []
+        st.session_state.question = ""
+        st.session_state.mic.start_stream()
+    else:
+        transcript = st.session_state.mic.stop_stream_and_transcribe()
+        st.session_state.transcript.append(transcript)
+        st.session_state.question = " ".join(st.session_state.transcript)
+    
+# Callback function when Enter is pressed
+def handle_submit():
+    st.session_state.question = st.session_state.user_input
+    st.session_state.user_input = ""  # Clear input
+
+
 
 # Sidebar button logic
 with st.sidebar:
