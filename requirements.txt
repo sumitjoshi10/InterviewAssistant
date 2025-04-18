@@ -3,4 +3,4 @@ speechrecognition
 sounddevice
 soundfile
 numpy
-pyaudio
+# pyaudio
