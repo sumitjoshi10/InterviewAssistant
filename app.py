@@ -1,9 +1,5 @@
 import streamlit as st
 from streamlit_mic_recorder import speech_to_text
-import av
-from typing import List
-import threading
-import queue
 
 state = st.session_state
 
