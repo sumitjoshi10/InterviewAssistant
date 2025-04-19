@@ -1,6 +1,2 @@
 streamlit
-speechrecognition
-sounddevice
-soundfile
-numpy
-# pyaudio
+streamlit_mic_recorder
