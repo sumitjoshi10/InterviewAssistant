@@ -1,2 +1,6 @@
 streamlit
 streamlit_mic_recorder
+langchain-groq
+python-dotenv
+langchainpip -huggingface
+docx2txt

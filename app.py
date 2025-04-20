@@ -1,5 +1,6 @@
 import streamlit as st
 from streamlit_mic_recorder import speech_to_text
+from models import AnswerGenerator
 
 state = st.session_state
 
@@ -10,6 +11,8 @@ if "answer" not in state:
     state.answer = ""
 if "manual_input" not in state:
     state.manual_input = ""
+if "model" not in state:
+    state.model = AnswerGenerator()
     
 # Callback function when Enter is pressed
 def handle_submit():
@@ -66,9 +69,13 @@ with st.sidebar:
         
         ## Upload the Resume
         resume_file = st.file_uploader("Upload your Resume (.docx only)", type=["docx"])
+        if resume_file:
+            resume_document = state.model.resume_loader(resume_file)
         
         ## Upload the Job Description
         jd_file = st.file_uploader("Upload your Job Description (.txt only)", type=["txt"])
+        if jd_file:
+            jd_document = state.model.jd_loader(jd_file)
 
     st.markdown("-----")
     st.markdown("Made by Sumit Joshi")
@@ -88,11 +95,16 @@ st.markdown(
     f"<p style='font-size:30px; color:White;'> <b>Question: </b><br> {state.question}</p>",
     unsafe_allow_html=True
 )
+if resume_file:
+    st.write(resume_document)
+if jd_file:
+    st.write(jd_document)
 
 
 # Conditional markdown sfor answer
 if state.question:
-    msg = f"<p style='font-size:30px; color:White;'><b>Answer: </b><br> Answer WIP </p>"
+    answer = "WIP"
+    msg = f"<p style='font-size:30px; color:White;'><b>Answer: </b><br> {answer} </p>"
 else:
     msg = ""
 st.markdown(msg, unsafe_allow_html=True)
