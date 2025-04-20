@@ -47,7 +47,7 @@ class AnswerGenerator:
             loader = TextLoader(self.temp_path,  encoding="utf-8")
             document = loader.load()
             self._jd_summarizer(document[0].page_content)
-            # return self.jd_documents   ### to check whether it is generating the response
+            return self.jd_documents   ### to check whether it is generating the response
         except Exception as e:
             st.error(e)
         finally:
@@ -78,6 +78,7 @@ class AnswerGenerator:
 
         chain = prompt_summarizer | self.model | parser
         self.jd_documents = chain.invoke({"job_description":document})
+        
         
     def context_generator(self,title,question):
         class Context(BaseModel):
