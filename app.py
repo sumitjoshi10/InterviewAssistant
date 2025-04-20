@@ -13,6 +13,8 @@ if "manual_input" not in state:
     state.manual_input = ""
 if "model" not in state:
     state.model = AnswerGenerator()
+if "context" not in state:
+    state.context = ""
     
 # Callback function when Enter is pressed
 def handle_submit():
@@ -21,7 +23,7 @@ def handle_submit():
     state.question = state.manual_input
     state.manual_input = ""  # Clear the input field
 
-state
+# state
 
 # Sidebar button logic
 with st.sidebar:
@@ -46,19 +48,11 @@ with st.sidebar:
         on_change=handle_submit
     )
 
-    # st.markdown(f"**Status:** {'🟢 Running' if state.running else '🔴 Stopped'}")
-    # st.text(state.question)
-    # st.button(
-    #     "▶️ Start" if not state.running else "⏹️ Stop",
-    #     key="toggle_button",
-    #     on_click=toggle,
-    # )
-  
-
     ## Context Markdown
     st.markdown(
-        f"**Context:** WIP"
+        f"**Context:** {state.context}"
     )
+    
     
     # Simulated second sidebar using expander
     with st.expander("📂 Document Uploader", expanded=False):
@@ -74,8 +68,12 @@ with st.sidebar:
         
         ## Upload the Job Description
         jd_file = st.file_uploader("Upload your Job Description (.txt only)", type=["txt"])
+        
         if jd_file:
             jd_document = state.model.jd_loader(jd_file)
+            # state.model.jd_loader(jd_file)
+        
+    
 
     st.markdown("-----")
     st.markdown("Made by Sumit Joshi")
@@ -91,13 +89,23 @@ st.markdown(
 st.markdown(
         f"**Job Description:** {'✅  Uploaded' if jd_file else '❌ Pending'}"
     )
+
+if jd_file and state.question and job_position:
+    state.context = state.model.context_generator(title=job_position,question=state.question)
+
+st.markdown(
+    f"<p style='font-size:30px; color:White;'> <b>Context: </b>{state.context}",
+    unsafe_allow_html=True
+)
 st.markdown(
     f"<p style='font-size:30px; color:White;'> <b>Question: </b><br> {state.question}</p>",
     unsafe_allow_html=True
 )
 if resume_file:
     st.write(resume_document)
-if jd_file:
+    
+# Just to check the Job Description
+if jd_file:    
     st.write(jd_document)
 
 
