@@ -1,6 +1,7 @@
 from langchain_groq import ChatGroq
-from langchain_core.prompts import PromptTemplate,ChatMessagePromptTemplate
+from langchain_core.prompts import PromptTemplate,ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser,PydanticOutputParser
+from langchain.output_parsers import StructuredOutputParser, ResponseSchema
 from pydantic import BaseModel,Field
 
 from typing import Literal
@@ -37,28 +38,66 @@ class Chains:
     
     def context_generator_chain(self):
         class Context(BaseModel):
-            context: Literal["Experience", "Coding", "Knowledge"] = Field(description="Sentiment of the feedback")
+            context: Literal["Experience", "Coding", "Knowledge"] = Field(description="Context of the Question")
         
         parser_context = PydanticOutputParser(pydantic_object=Context)
         
         prompt_context = PromptTemplate(
             input_variables=["job_position","job_description","question"],
-            partial_variables={"format_instructions": parser_context.get_format_instructions()},
+            
             template='''You are the technical Expert with 11+Years of experience for the project title {job_position}.
-            And You have all the Experince mentioned in the {job_description}.
-            You are facing the interview for the same job position {job_position}
+            And you have all the experience mentioned in the {job_description}.
+            You are facing the interview for the same job position {job_position}.
             
-            Now Based on the question {question} asked by the interviewer try to extract the context of the question that has been asked by the interviewer.
+            Now based on the question {question} asked by the interviewer, try to extract the context of the question.
             
-            The context may be 'Experience' when asked about your epericence in the related technology and project.
-            The context may be 'Coding' when asked about coding epericence in the related technology.
-            The context may be 'Knowledge' when asked about knowledge in the related technology and project.
+            The context may be:
+            - 'Experience': when asked about your experience in the related technology and project.
+            - 'Coding': when asked about coding experience in the related technology.
+            - 'Knowledge': when asked about knowledge in the related technology and project.
             
-            Do not try to explain why you choose one of the context just give one of the context in any question asked.
+            Do not try to explain why you chose the context. Just give one of the context values.
             
-            \n {format_instructions}
-            '''
+            {format_instructions}
+            ''',
+            partial_variables={"format_instructions": parser_context.get_format_instructions()},
         )
         
         context_chain = prompt_context | self.model | parser_context
         return context_chain
+    
+    def code_generator_chain(self):
+        
+
+        parser_code = StrOutputParser()
+        
+        system_template = ('''
+        You are a helpful coding assistant with expert in Job position {job_position} having all the knowledge of all the mentioned skills in job description as 
+        
+        {job_description}
+        
+        Now Based on the question asked by the interviewer.
+        Your job is to output only code in the specified programming language.
+
+        Think step by step and provide a concise answer
+        ''')
+        prompt_code = ChatPromptTemplate([
+            ("system",system_template),
+            ("user","Write the code for the question \n {question}"),
+            ])
+        
+        code_chain = prompt_code | self.model | parser_code
+        return code_chain
+    
+    def merge_context(self,parsed_output, original_input):
+        try:
+            return {
+                "context": parsed_output.context,
+                "job_position": original_input.get("job_position", ""),
+                "job_description": original_input.get("job_description", ""),
+                "question": original_input.get("question", "")
+            }
+        except Exception as e:
+            st.error(e)
+        
+        

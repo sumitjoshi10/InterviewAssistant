@@ -1,14 +1,11 @@
 from chains import Chains
 from doc_loader import DocumnetLoader
-from langchain_core.prompts import PromptTemplate,ChatMessagePromptTemplate
-from langchain_core.output_parsers import StrOutputParser,PydanticOutputParser
+
 from langchain_core.runnables import RunnablePassthrough,RunnableParallel,RunnableBranch,RunnableLambda
-from langchain_community.document_loaders import TextLoader,Docx2txtLoader
 
 
 import streamlit as st
-from pydantic import BaseModel, Field
-from typing import Literal
+
 
 doc_loader = DocumnetLoader()
 
@@ -46,34 +43,47 @@ class AnswerGenerator:
         context_chain = self.chains.context_generator_chain()
         
         knowledge_answer_chain = RunnableLambda(lambda x: "Knowledge Chain Activated")
-        code_answer_chain = RunnableLambda(lambda x: "Coding Chain Activated")
-        experience_answer_chain = RunnableLambda(lambda x: "Expericence Chain Activated")
+        code_answer_chain = self.chains.code_generator_chain()
+        experience_answer_chain = RunnableLambda(lambda x: "Experience Chain Activated")
         default_answer_chain = RunnableLambda(lambda x: "Default Chain Activated")
         
         branch_chain = RunnableBranch(
-            (lambda x:x.context == "Experience", experience_answer_chain),
-            (lambda x:x.context == "Coding", code_answer_chain),
-            (lambda x:x.context == "Knowledge", knowledge_answer_chain),
+            (lambda x: x["context"] == "Experience", experience_answer_chain),
+            (lambda x: x["context"] == "Coding", code_answer_chain),
+            (lambda x: x["context"] == "Knowledge", knowledge_answer_chain),
             default_answer_chain
         )
-        # branch_chain = RunnableLambda(lambda x: "Branch Chain Activated")
         
+        
+        ### Merging the Input as well as output from the Context Chain
+        merge_context_chain = RunnableLambda(lambda inputs: self.chains.merge_context(inputs["parsed"], inputs["original"]))
+        
+        
+        # First, run the context_chain and capture both the parsed output and original input
+        combined_chain = RunnableLambda(lambda x: {"parsed": context_chain.invoke(x), "original": x}) | merge_context_chain
+      
+            
         parallel_chain = RunnableParallel({
-            "context": RunnablePassthrough(),
-            "answer" : branch_chain
+            "context": RunnableLambda(lambda x: x["context"]),
+            "answer": branch_chain
         })
      
-        chain = context_chain | parallel_chain
+        # Full chain
+        final_chain = combined_chain | parallel_chain
        
+        #### Invoke the chain with proper input structure
+        answer = final_chain.invoke({
+            "job_position": job_position,
+            "job_description": self.jd_documents,
+            "question": question
+        })
         
-              
-        answer = chain.invoke({"job_position":job_position,
-                                 "job_description": self.jd_documents,
-                                 "question": question})
+        # answer = final_chain.invoke({
+        #     "job_position": "GEN AI",
+        #     "job_description": "We are seeking a Mid-Level Generative AI Developer with expertise in Python, AI-focused libraries (PyTorch, TensorFlow, LangChain, Transformers), and AWS services. The ideal candidate should have hands-on experience with AWS Bedrock, AWS Knowledge Base, and LLM models. Key skills include Python, AI/ML development, AWS Serverless Technologies (Lambda, API Gateway, Step Functions), RAG models, vector databases, and MLOps practices. Additionally, experience with AWS AI services, prompt engineering, and multi-modal AI models is preferred. The candidate should have strong problem-solving skills, analytical thinking, and the ability to work independently or in a team environment, with a focus on designing, developing, and deploying cutting-edge AI solutions using AWS services and Python.",
+        #     "question": "Write the code to sum 2 number"
+        # })
         
-        # answer = chain.invoke({"job_position":"GEn AI",
-        #                      "job_description": "We're seeking a Mid-Level Generative AI Developer with expertise in Python, AI-focused libraries (PyTorch, TensorFlow, LangChain, Transformers), and AWS services. The ideal candidate will have hands-on experience with AWS Bedrock, Knowledge Base, and LLM models, as well as knowledge of Retrieval-Augmented Generation (RAG) models, vector databases, and AWS Serverless Technologies. Key skills include Python, AI/ML-focused libraries, AWS services (Lambda, API Gateway, Step Functions, S3, DynamoDB), MLOps practices, and CI/CD pipelines. The candidate should also have experience with RAG models, vector databases, and cloud-based AI deployment, with strong problem-solving skills and analytical thinking. Additionally, knowledge of prompt engineering, multi-modal AI models, and AWS AI services is preferred.",
-        #                      "question": "Write the code on FAST API"})
         
         return answer
         
@@ -90,4 +100,4 @@ if __name__ =="__main__":
     print(type(answer["context"]))
     print(answer["context"].context)
 
-        
+

@@ -105,7 +105,7 @@ st.markdown(
 
 if jd_file and resume_file and state.question and job_position:
     state.answer = state.model.answer_generator(job_position=job_position,question=state.question)
-    state.context = state.answer["context"].context
+    state.context = state.answer["context"]
 
 
 
@@ -121,13 +121,13 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-### Change the Resume to Vector
-if state.resume_vector_store:
-    st.write(state.resume_vector_store)
+# ### Change the Resume to Vector
+# if state.resume_vector_store:
+#     st.write(state.resume_vector_store)
     
-# Just to check the Job Description
-if state.jd_summarized_document:    
-    st.write(state.jd_summarized_document)
+# # Just to check the Job Description
+# if state.jd_summarized_document:    
+#     st.write(state.jd_summarized_document)
 
 
 
@@ -135,7 +135,11 @@ if state.jd_summarized_document:
 # Conditional markdown for answer
 if state.question:
     answer = state.answer["answer"]
-    msg = f"<p style='font-size:30px; color:White;'><b>Answer: </b><br> {answer} </p>"
+    if state.context == "Coding":
+        st.code(answer)
+        msg = ""
+    else:
+        msg = f"<p style='font-size:30px; color:White;'><b>Answer: </b><br> {answer} </p>"
 else:
     msg = ""
 st.markdown(msg, unsafe_allow_html=True)
