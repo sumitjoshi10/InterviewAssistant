@@ -37,58 +37,39 @@ class Chains:
             st.error(e)
     
     def context_generator_chain(self):
-        class Context(BaseModel):
-            context: Literal["Experience", "Coding", "Knowledge"] = Field(description="Context of the Question")
-        
-        parser_context = PydanticOutputParser(pydantic_object=Context)
-        
-        prompt_context = PromptTemplate(
-            input_variables=["job_position","job_description","question"],
+        try:
+            class Context(BaseModel):
+                context: Literal["Experience", "Coding", "Knowledge"] = Field(description="Context of the Question")
             
-            template='''You are the technical Expert with 11+Years of experience for the project title {job_position}.
-            And you have all the experience mentioned in the {job_description}.
-            You are facing the interview for the same job position {job_position}.
+            parser_context = PydanticOutputParser(pydantic_object=Context)
             
-            Now based on the question {question} asked by the interviewer, try to extract the context of the question.
+            prompt_context = PromptTemplate(
+                input_variables=["job_position","job_description","question"],
+                
+                template='''You are the technical Expert with 11+Years of experience for the project title {job_position}.
+                And you have all the experience mentioned in the {job_description}.
+                You are facing the interview for the same job position {job_position}.
+                
+                Now based on the question {question} asked by the interviewer, try to extract the context of the question.
+                
+                The context may be:
+                - 'Experience': when asked about your experience in the related technology and project.
+                - 'Coding': when asked about coding experience in the related technology.
+                - 'Knowledge': when asked about knowledge in the related technology and project.
+                
+                Do not try to explain why you chose the context. Just give one of the context values.
+                
+                {format_instructions}
+                ''',
+                partial_variables={"format_instructions": parser_context.get_format_instructions()},
+            )
             
-            The context may be:
-            - 'Experience': when asked about your experience in the related technology and project.
-            - 'Coding': when asked about coding experience in the related technology.
-            - 'Knowledge': when asked about knowledge in the related technology and project.
-            
-            Do not try to explain why you chose the context. Just give one of the context values.
-            
-            {format_instructions}
-            ''',
-            partial_variables={"format_instructions": parser_context.get_format_instructions()},
-        )
-        
-        context_chain = prompt_context | self.model | parser_context
-        return context_chain
+            context_chain = prompt_context | self.model | parser_context
+            return context_chain
+        except Exception as e:
+            st.error(e)
     
-    def code_generator_chain(self):
-        
-
-        parser_code = StrOutputParser()
-        
-        system_template = ('''
-        You are a helpful coding assistant with expert in Job position {job_position} having all the knowledge of all the mentioned skills in job description as 
-        
-        {job_description}
-        
-        Now Based on the question asked by the interviewer.
-        Your job is to output only code in the specified programming language.
-
-        Think step by step and provide a concise answer
-        ''')
-        prompt_code = ChatPromptTemplate([
-            ("system",system_template),
-            ("user","Write the code for the question \n {question}"),
-            ])
-        
-        code_chain = prompt_code | self.model | parser_code
-        return code_chain
-    
+       
     def merge_context(self,parsed_output, original_input):
         try:
             return {
@@ -100,4 +81,60 @@ class Chains:
         except Exception as e:
             st.error(e)
         
+    def code_generator_chain(self):
+        try:
+
+            parser_code = StrOutputParser()
+            
+            system_template = ('''
+            You are a helpful coding assistant with expert in Job position {job_position} having all the knowledge of all the mentioned skills in job description as 
+            
+            {job_description}
+            
+            Now Based on the question asked by the interviewer.
+            Your job is to output only code in the specified programming language.
+
+            Think step by step and provide a concise answer
+            ''')
+            prompt_code = ChatPromptTemplate([
+                ("system",system_template),
+                ("user","Write the code for the question \n {question}"),
+                ])
+            
+            code_chain = prompt_code | self.model | parser_code
+            return code_chain
         
+        except Exception as e:
+            st.error(e)
+
+    def knowledge_generator_chain(self):
+        try:
+           
+            parser_knowledge = StrOutputParser()
+            
+            system_template = ('''
+            You are a helpful technical Expert assistant with expert in Job position {job_position} having all the knowledge of all the mentioned skills in job description as 
+            
+            {job_description}
+            
+            Now Based on the question asked by the interviewer.
+            Your job is to provide the relevant answer along with the Matematical Equation if Required without giving any type of code snippit or  the false answer.
+            
+            Using all your Experties knowledge give to the point short and consice answer.
+            Do not try to explain everthing.
+            
+            Try to give answer only in bullet points.
+            Each Bullet Point shold begin in New Line
+            
+            If the Question is not in the context of your experties please say you dnt know.
+        
+            ''')
+            prompt_knowledge = ChatPromptTemplate([
+                ("system",system_template),
+                ("user","Write the code for the question \n {question}"),
+                ])
+            
+            knowledge_chain = prompt_knowledge | self.model | parser_knowledge
+            return knowledge_chain
+        except Exception as e:
+            st.error(e)

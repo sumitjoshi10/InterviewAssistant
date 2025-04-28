@@ -40,53 +40,57 @@ class AnswerGenerator:
             
                  
     def answer_generator(self, job_position="", question=""):
-        context_chain = self.chains.context_generator_chain()
-        
-        knowledge_answer_chain = RunnableLambda(lambda x: "Knowledge Chain Activated")
-        code_answer_chain = self.chains.code_generator_chain()
-        experience_answer_chain = RunnableLambda(lambda x: "Experience Chain Activated")
-        default_answer_chain = RunnableLambda(lambda x: "Default Chain Activated")
-        
-        branch_chain = RunnableBranch(
-            (lambda x: x["context"] == "Experience", experience_answer_chain),
-            (lambda x: x["context"] == "Coding", code_answer_chain),
-            (lambda x: x["context"] == "Knowledge", knowledge_answer_chain),
-            default_answer_chain
-        )
-        
-        
-        ### Merging the Input as well as output from the Context Chain
-        merge_context_chain = RunnableLambda(lambda inputs: self.chains.merge_context(inputs["parsed"], inputs["original"]))
-        
-        
-        # First, run the context_chain and capture both the parsed output and original input
-        combined_chain = RunnableLambda(lambda x: {"parsed": context_chain.invoke(x), "original": x}) | merge_context_chain
-      
+        try:
+            context_chain = self.chains.context_generator_chain()
             
-        parallel_chain = RunnableParallel({
-            "context": RunnableLambda(lambda x: x["context"]),
-            "answer": branch_chain
-        })
-     
-        # Full chain
-        final_chain = combined_chain | parallel_chain
-       
-        #### Invoke the chain with proper input structure
-        answer = final_chain.invoke({
-            "job_position": job_position,
-            "job_description": self.jd_documents,
-            "question": question
-        })
+            knowledge_answer_chain = self.chains.knowledge_generator_chain()
+            code_answer_chain = self.chains.code_generator_chain()
+            experience_answer_chain = RunnableLambda(lambda x: "Experience Chain Activated")
+            default_answer_chain = RunnableLambda(lambda x: "Default Chain Activated")
+            
+            branch_chain = RunnableBranch(
+                (lambda x: x["context"] == "Experience", experience_answer_chain),
+                (lambda x: x["context"] == "Coding", code_answer_chain),
+                (lambda x: x["context"] == "Knowledge", knowledge_answer_chain),
+                default_answer_chain
+            )
+            
+            
+            ### Merging the Input as well as output from the Context Chain
+            merge_context_chain = RunnableLambda(lambda inputs: self.chains.merge_context(inputs["parsed"], inputs["original"]))
+            
+            
+            # First, run the context_chain and capture both the parsed output and original input
+            combined_chain = RunnableLambda(lambda x: {"parsed": context_chain.invoke(x), "original": x}) | merge_context_chain
         
-        # answer = final_chain.invoke({
-        #     "job_position": "GEN AI",
-        #     "job_description": "We are seeking a Mid-Level Generative AI Developer with expertise in Python, AI-focused libraries (PyTorch, TensorFlow, LangChain, Transformers), and AWS services. The ideal candidate should have hands-on experience with AWS Bedrock, AWS Knowledge Base, and LLM models. Key skills include Python, AI/ML development, AWS Serverless Technologies (Lambda, API Gateway, Step Functions), RAG models, vector databases, and MLOps practices. Additionally, experience with AWS AI services, prompt engineering, and multi-modal AI models is preferred. The candidate should have strong problem-solving skills, analytical thinking, and the ability to work independently or in a team environment, with a focus on designing, developing, and deploying cutting-edge AI solutions using AWS services and Python.",
-        #     "question": "Write the code to sum 2 number"
-        # })
+                
+            parallel_chain = RunnableParallel({
+                "context": RunnableLambda(lambda x: x["context"]),
+                "answer": branch_chain
+            })
         
+            # Full chain
+            final_chain = combined_chain | parallel_chain
         
-        return answer
+            #### Invoke the chain with proper input structure
+            answer = final_chain.invoke({
+                "job_position": job_position,
+                "job_description": self.jd_documents,
+                "question": question
+            })
+            
+            # answer = final_chain.invoke({
+            #     "job_position": "GEN AI",
+            #     "job_description": "We are seeking a Mid-Level Generative AI Developer with expertise in Python, AI-focused libraries (PyTorch, TensorFlow, LangChain, Transformers), and AWS services. The ideal candidate should have hands-on experience with AWS Bedrock, AWS Knowledge Base, and LLM models. Key skills include Python, AI/ML development, AWS Serverless Technologies (Lambda, API Gateway, Step Functions), RAG models, vector databases, and MLOps practices. Additionally, experience with AWS AI services, prompt engineering, and multi-modal AI models is preferred. The candidate should have strong problem-solving skills, analytical thinking, and the ability to work independently or in a team environment, with a focus on designing, developing, and deploying cutting-edge AI solutions using AWS services and Python.",
+            #     # "question": "What is Confusion Matrix?"
+            #     "question": "Write the code to add 2 number"
+            # })
+            
+            
+            return answer
         
+        except Exception as e:
+            st.error(e)
         
 if __name__ =="__main__":
     

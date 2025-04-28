@@ -58,10 +58,10 @@ with st.sidebar:
         on_change=handle_submit
     )
 
-    ## Context Markdown
-    st.markdown(
-        f"**Context:** {state.context}"
-    )
+    # ## Context Markdown
+    # st.markdown(
+    #     f"**Context:** {state.context}"
+    # )
     
     
     # Simulated second sidebar using expander
@@ -134,12 +134,12 @@ st.markdown(
 
 # Conditional markdown for answer
 if state.question:
+    msg = f"<p style='font-size:30px; color:White;'><b>Answer: </b></p>"
+    st.markdown(msg, unsafe_allow_html=True)
     answer = state.answer["answer"]
     if state.context == "Coding":
         st.code(answer)
-        msg = ""
     else:
-        msg = f"<p style='font-size:30px; color:White;'><b>Answer: </b><br> {answer} </p>"
+        st.write(answer)
 else:
     msg = ""
-st.markdown(msg, unsafe_allow_html=True)

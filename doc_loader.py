@@ -44,7 +44,8 @@ class DocumnetLoader:
                 raise ValueError("Temporary file not created yet.")
             loader = Docx2txtLoader(self.temp_path)
             document = loader.load()
-            return document[0].page_content ### to check whether it is generating the response
+            return document
+            # return document[0].page_content ### to check whether it is generating the response
         except Exception as e:
             st.error(e)
         finally:
