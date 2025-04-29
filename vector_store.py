@@ -8,7 +8,7 @@ import streamlit as st
 class VectorStore:
     def __init__(self):
         '''Creating the Vector Store using the FAISS'''
-        self.model_name = "sentence-transformers/all-mpnet-base-v2"
+        self.model_name = "./models/all-MiniLM-l6-v2/"
         self.model_kwargs = {'device': 'cpu'}
         self.encode_kwargs = {'normalize_embeddings': False}
         self.embedding = HuggingFaceEmbeddings(
