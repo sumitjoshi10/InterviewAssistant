@@ -1,28 +1,25 @@
 from chains import Chains
 from doc_loader import DocumnetLoader
+from vector_store import VectorStore
 
 from langchain_core.runnables import RunnablePassthrough,RunnableParallel,RunnableBranch,RunnableLambda
 
 
 import streamlit as st
 
-
-doc_loader = DocumnetLoader()
-
 class AnswerGenerator:
     def __init__(self):
         self.chains = Chains()
         self.jd_documents = []
-        self.resume_documents = []
+
                      
     def jd_summarizer(self, jd_file):
         '''Will summarize the Document using the chains'''
         try:
-            jd_document =doc_loader.jd_loader(jd_file=jd_file)
-            jd_summarizer_chain = self.chains.jd_summarizer_chain()
-            self.jd_documents = jd_summarizer_chain.invoke({"job_description":jd_document})
+            self.jd_documents = self.chains.jd_summarizer_invoke(jd_file=jd_file)
+            
             # print (self.jd_documents)
-            return self.jd_documents ### only to test
+            return True ### only to test
         
         except Exception as e:
             st.error(e)
@@ -30,11 +27,9 @@ class AnswerGenerator:
     def resume_vector_store(self, resume_file):
         '''Will convert the Document to the Vector Store'''
         try:
-            resume_document = doc_loader.resume_loader(resume_file=resume_file)
-            
-            ## Need to code to store in the Vector Store
-            ## For now just returing the Document that has been Uploaded
-            return resume_document
+            self.chains.generate_vector_store(resume_file=resume_file)
+            return True
+           
         except Exception as e:
             st.error(e)
             

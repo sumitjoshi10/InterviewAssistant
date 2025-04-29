@@ -5,5 +5,5 @@ langchain-community
 langchain-core
 langchain
 python-dotenv
-# langchainpip-huggingface
+# langchain-huggingface
 docx2txt

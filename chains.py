@@ -3,6 +3,8 @@ from langchain_core.prompts import PromptTemplate,ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser,PydanticOutputParser
 from langchain.output_parsers import StructuredOutputParser, ResponseSchema
 from pydantic import BaseModel,Field
+from doc_loader import DocumnetLoader
+from vector_store import VectorStore
 
 from typing import Literal
 
@@ -15,13 +17,16 @@ load_dotenv()
 
 class Chains:
     def __init__(self):
-          self.model = ChatGroq(
+        self.model = ChatGroq(
             model_name="llama-3.3-70b-versatile",
             temperature=0.7,
             api_key=os.getenv("GROQ_API_KEY")
         )
+        self.doc_loader = DocumnetLoader()
+        self.vector_store_object = VectorStore()
+        self.vector_store = None
           
-    def jd_summarizer_chain(self):
+    def _jd_summarizer_chain(self):
         '''It is the Chain used to summarize the JD'''
         try:
             prompt_summarizer = PromptTemplate(
@@ -35,8 +40,35 @@ class Chains:
             return jd_chain
         except Exception as e:
             st.error(e)
-    
+            
+    def jd_summarizer_invoke(self,jd_file):
+        '''This function will invoke the JD summarizer chain and return the summarized JD
+            It will take the JD file and convert it to the text and then summarize it'''
+            
+        try:
+            jd_document =self.doc_loader.jd_loader(jd_file=jd_file)
+            jd_summarizer_chain = self._jd_summarizer_chain()
+            jd_summarized = jd_summarizer_chain.invoke({"job_description":jd_document})
+            return jd_summarized
+        except Exception as e:
+            st.error(e)
+            
+    def generate_vector_store(self,resume_file):
+        '''This function will generate the vector store for the resume file
+            It will take the resume file and convert it to the vector store'''
+            
+        try:
+            resume_document = self.doc_loader.resume_loader(resume_file=resume_file)
+            self.vector_store = self.vector_store_object.vector_store(document=resume_document)
+            print (self.vector_store.index_to_docstore_id)
+        except Exception as e:
+            st.error(e)
+        
     def context_generator_chain(self):
+        '''This function will generate the context for the question asked by the interviewer
+            It will take the job position, job description and question asked by the interviewer
+            It will return the context of the question asked by the interviewer'''
+            
         try:
             class Context(BaseModel):
                 context: Literal["Experience", "Coding", "Knowledge"] = Field(description="Context of the Question")
@@ -71,6 +103,10 @@ class Chains:
     
        
     def merge_context(self,parsed_output, original_input):
+        '''This function will merge the context with the original input
+            It will take the parsed output and original input and return the merged output
+            It will take the context from the parsed output and job position, job description and question from the original input
+            It will return the merged output as a dictionary'''
         try:
             return {
                 "context": parsed_output.context,
@@ -82,8 +118,11 @@ class Chains:
             st.error(e)
         
     def code_generator_chain(self):
+        '''This function will generate the code for the question asked by the interviewer
+            It will take the job position, job description and question asked by the interviewer
+            It will return the code chain for the question asked by the interviewer'''
+            
         try:
-
             parser_code = StrOutputParser()
             
             system_template = ('''
@@ -118,7 +157,7 @@ class Chains:
             {job_description}
             
             Now Based on the question asked by the interviewer.
-            Your job is to provide the relevant answer along with the Matematical Equation if Required without giving any type of code snippit or  the false answer.
+            Your job is to provide the relevant answer only along with the Matematical Equation if Required without code snippet.
             
             Using all your Experties knowledge give to the point short and consice answer.
             Do not try to explain everthing.

@@ -22,9 +22,9 @@ if "model" not in state:
 if "context" not in state:
     state.context = ""
 if "jd_summarized_document" not in state:
-    state.jd_summarized_document = ""
+    state.jd_summarized_document = False
 if "resume_vector_store" not in state:
-    state.resume_vector_store = ""
+    state.resume_vector_store = False
     
 # Callback function when Enter is pressed
 def handle_submit():
@@ -73,18 +73,18 @@ with st.sidebar:
         
         ## Upload the Resume
         resume_file = st.file_uploader("Upload your Resume (.docx only)", type=["docx"])
-        if resume_file and state.resume_vector_store == "":
+        if resume_file and not state.resume_vector_store:
             
-            state.resume_vector_store = state.model.resume_vector_store(resume_file)
+            state.resume_vector_store =  state.model.resume_vector_store(resume_file=resume_file)
         elif not resume_file:
-            state.resume_vector_store = ""
+            state.resume_vector_store = False
             
         ## Upload the Job Description
         jd_file = st.file_uploader("Upload your Job Description (.txt only)", type=["txt"])
-        if jd_file and state.jd_summarized_document == "":
+        if jd_file and not state.jd_summarized_document :
             state.jd_summarized_document = state.model.jd_summarizer(jd_file=jd_file)
         elif not jd_file:
-            state.jd_summarized_document = ""
+            state.jd_summarized_document = False
             
             
 
@@ -96,12 +96,17 @@ with st.sidebar:
 # Main page content
 st.title(f"Interview Assistant for Job position {job_position}")
 
-st.markdown(
-        f"**Resume:** {'✅  Uploaded and Vectorized' if state.resume_vector_store else '❌ Pending'}"
+col1, col2, col3 = st.columns(3)
+with col2:
+    st.markdown(
+        f"**Resume:** {'✅ Vectorized' if state.resume_vector_store else '❌ Pending'}"
     )
-st.markdown(
-        f"**Job Description:** {'✅  Uploaded and Summarized' if state.jd_summarized_document else '❌ Pending'}"
+    
+with col3:
+    st.markdown(
+        f"**JD:** {'✅ Summarized' if state.jd_summarized_document else '❌ Pending'}"
     )
+
 
 if jd_file and resume_file and state.question and job_position:
     state.answer = state.model.answer_generator(job_position=job_position,question=state.question)
@@ -110,14 +115,15 @@ if jd_file and resume_file and state.question and job_position:
 
 
 ### To dispaly Context
-st.markdown(
-    f"<p style='font-size:30px; color:White;'> <b>Context: </b>{state.context}",
-    unsafe_allow_html=True
-)
+with col1:
+    st.markdown(
+        f"<p style='font-size:20px; color:White;'> <b>Context: </b>{state.context}",
+        unsafe_allow_html=True
+    )
 
 ### To Display Question
 st.markdown(
-    f"<p style='font-size:30px; color:White;'> <b>Question: </b><br> {state.question}</p>",
+    f"<p style='font-size:20px; color:White;'> <b>Question: </b><br> {state.question}</p>",
     unsafe_allow_html=True
 )
 
