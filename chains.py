@@ -60,6 +60,8 @@ class Chains:
         try:
             resume_document = self.doc_loader.resume_loader(resume_file=resume_file)
             self.vector_store = self.vector_store_object.vector_store(document=resume_document)
+            
+            st.success("Vector Store ID: "+str(self.vector_store.index_to_docstore_id))
             print (self.vector_store.index_to_docstore_id)
         except Exception as e:
             st.error(e)
