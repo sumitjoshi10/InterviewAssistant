@@ -8,3 +8,4 @@ python-dotenv
 langchain-huggingface
 sentence-transformers
 docx2txt
+faiss-cpu
