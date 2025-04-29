@@ -49,6 +49,7 @@ class Chains:
             jd_document =self.doc_loader.jd_loader(jd_file=jd_file)
             jd_summarizer_chain = self._jd_summarizer_chain()
             jd_summarized = jd_summarizer_chain.invoke({"job_description":jd_document})
+            st.success("JD Summarized Successfully " + str(jd_summarized))
             return jd_summarized
         except Exception as e:
             st.error(e)
