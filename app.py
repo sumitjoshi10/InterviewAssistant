@@ -1,13 +1,15 @@
-import streamlit as st
-from streamlit_mic_recorder import speech_to_text
-from models import AnswerGenerator
-
-
 import os
 import certifi
 
 os.environ["SSL_CERT_FILE"] = certifi.where()
 os.environ["STREAMLIT_WATCHER_TYPE"] = "none"
+
+import streamlit as st
+from streamlit_mic_recorder import speech_to_text
+from models import AnswerGenerator
+
+
+
 
 state = st.session_state
 
