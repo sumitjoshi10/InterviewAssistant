@@ -5,6 +5,7 @@ from langchain_community.vectorstores import FAISS
 import streamlit as st
 
 
+
 class VectorStore:
     def __init__(self):
         '''Creating the Vector Store using the FAISS'''
@@ -21,8 +22,8 @@ class VectorStore:
         '''Splitting the Document into Chunks'''
         try:
             text_splitter = RecursiveCharacterTextSplitter(
-                chunk_size=500,
-                chunk_overlap=100,
+                chunk_size=1000,
+                chunk_overlap=200,
                 length_function=len
             )
             chunks = text_splitter.split_documents(document)
@@ -31,6 +32,7 @@ class VectorStore:
             st.error(e)
             
     def vector_store(self, document):
+        
         chunks  = self.text_splitter(document=document)
         vector_store  = FAISS.from_documents(chunks, self.embedding)
         return vector_store

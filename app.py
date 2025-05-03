@@ -2,13 +2,11 @@ import os
 import certifi
 
 os.environ["SSL_CERT_FILE"] = certifi.where()
-os.environ["STREAMLIT_WATCHER_TYPE"] = "none"
+
 
 import streamlit as st
 from streamlit_mic_recorder import speech_to_text
 from models import AnswerGenerator
-
-
 
 
 state = st.session_state
@@ -113,7 +111,11 @@ with col3:
 
 if jd_file and resume_file and state.question and job_position:
     state.answer = state.model.answer_generator(job_position=job_position,question=state.question)
-    state.context = state.answer["context"]
+    if state.answer is not None and "context" in state.answer:
+        state.context = state.answer["context"]
+    else:
+        st.write("No context found or answer is None.")
+    
 
 
 
