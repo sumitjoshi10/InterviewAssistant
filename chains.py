@@ -4,17 +4,20 @@ from langchain_core.output_parsers import StrOutputParser,PydanticOutputParser
 from langchain_core.runnables import RunnablePassthrough,RunnableParallel,RunnableBranch,RunnableLambda
 
 from pydantic import BaseModel,Field
+from typing import Literal, Dict, Optional
+
 from doc_loader import DocumnetLoader
 from vector_store import VectorStore
 
-from typing import Literal, Dict
 
 import streamlit as st
-
 from dotenv import load_dotenv
 import os
 
 load_dotenv()
+
+class Context(BaseModel):
+    context: Literal["Experience", "Coding", "Knowledge"] = Field(description="Context of the Question")
 
 class Chains:
     def __init__(self):
@@ -26,23 +29,24 @@ class Chains:
         self.doc_loader = DocumnetLoader()
         self.vector_store_object = VectorStore()
         self.vector_store = None
+        self.retriever = None
         
          # Parsers
         self.parser_str = StrOutputParser()
-        self.parser_context = self._create_context_parser()
+        self.parser_context = PydanticOutputParser(pydantic_object=Context)
+        
 
         # Chains
+        self._initialize_chains()
+        
+    def _initialize_chains(self):
         self.jd_summarizer_chain = self._create_jd_summarizer_chain()
         self.context_chain = self._create_context_chain()
         self.code_chain = self._create_code_chain()
         self.knowledge_chain = self._create_knowledge_chain()
         self.experience_prompt = self._create_experience_prompt()
-
-    def _create_context_parser(self) -> PydanticOutputParser:
-        class Context(BaseModel):
-            context: Literal["Experience", "Coding", "Knowledge"] = Field(description="Context of the Question")
-        return PydanticOutputParser(pydantic_object=Context)
     
+          
     def _create_jd_summarizer_chain(self):
         prompt = PromptTemplate(
             input_variables=["job_description"],
@@ -51,7 +55,6 @@ class Chains:
         return prompt | self.model | self.parser_str
 
     def _create_context_chain(self):
-        
         prompt = PromptTemplate(
             input_variables=["job_position", "job_description", "question"],
             template='''
@@ -125,11 +128,18 @@ class Chains:
             st.success("Vector Store ID: " + str(self.vector_store.index_to_docstore_id))
         except Exception as e:
             st.error(f"Vector Store Generation Error: {e}")
-            
+    
+    def _initialize_retriever(self):
+        if self.vector_store is None:
+            raise ValueError("Vector store not initialized.")
+        if self.retriever is None:
+            self.retriever = self.vector_store.as_retriever(
+                search_kwargs={"k": 5},
+                search_type="similarity"
+            )
     
     
     def context_generator_chain(self):
-
         return self.context_chain
 
     def merge_context(self, parsed_output: BaseModel, original_input: Dict[str, str]) -> Dict[str, str]:
@@ -152,10 +162,8 @@ class Chains:
 
     def experience_generation_chain(self):
         try:
-            if self.vector_store is None:
-                raise ValueError("Vector store not initialized.")
+            self._initialize_retriever()
             
-            self.retriever = self.vector_store.as_retriever(search_kwargs={"k": 5},search_type="similarity")
             experience_parallel_chain = RunnableParallel({
                 "resume_context": RunnableLambda(lambda x: self.retriever.invoke(x["question"])) | RunnableLambda(self.format_docs),
                 "job_position": RunnableLambda(lambda x: x["job_position"]),

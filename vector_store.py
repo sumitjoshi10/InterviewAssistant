@@ -7,32 +7,39 @@ import streamlit as st
 
 
 class VectorStore:
+    MODEL_PATH = "./models/all-MiniLM-l6-v2/"
+    DEVICE = "cpu"
+    CHUNK_SIZE = 1000
+    CHUNK_OVERLAP = 200
+    
     def __init__(self):
-        '''Creating the Vector Store using the FAISS'''
-        self.model_name = "./models/all-MiniLM-l6-v2/"
-        self.model_kwargs = {'device': 'cpu'}
-        self.encode_kwargs = {'normalize_embeddings': False}
-        self.embedding = HuggingFaceEmbeddings(
-            model_name=self.model_name,
-            model_kwargs=self.model_kwargs,
-            encode_kwargs=self.encode_kwargs
-        )
+        """Initialize embedding model for vector store."""
+        try:
+            self.embedding = HuggingFaceEmbeddings(
+                model_name=self.MODEL_PATH,
+                model_kwargs={"device": self.DEVICE},
+                encode_kwargs={"normalize_embeddings": False}
+            )
+        except Exception as e:
+            st.error(f"Embedding model initialization failed: {e}")
+            
     
     def text_splitter(self, document):
         '''Splitting the Document into Chunks'''
         try:
-            text_splitter = RecursiveCharacterTextSplitter(
-                chunk_size=1000,
-                chunk_overlap=200,
+            splitter = RecursiveCharacterTextSplitter(
+                chunk_size=self.CHUNK_SIZE,
+                chunk_overlap=self.CHUNK_OVERLAP,
                 length_function=len
             )
-            chunks = text_splitter.split_documents(document)
-            return chunks
+            return splitter.split_documents(document)
+            
         except Exception as e:
             st.error(e)
             
     def vector_store(self, document):
-        
-        chunks  = self.text_splitter(document=document)
-        vector_store  = FAISS.from_documents(chunks, self.embedding)
-        return vector_store
+        try:
+            chunks  = self.text_splitter(document=document)
+            return FAISS.from_documents(chunks, self.embedding)
+        except Exception as e:
+            st.error(e)

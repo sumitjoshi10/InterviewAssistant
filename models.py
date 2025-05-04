@@ -1,12 +1,7 @@
-from chains import Chains
-from doc_loader import DocumnetLoader
-from vector_store import VectorStore
-
-from langchain_core.runnables import RunnablePassthrough,RunnableParallel,RunnableBranch,RunnableLambda
-from logger import logging
-
-
 import streamlit as st
+from langchain_core.runnables import RunnableParallel, RunnableBranch, RunnableLambda
+from chains import Chains
+from logger import logging
 
 class AnswerGenerator:
     def __init__(self):
@@ -14,12 +9,11 @@ class AnswerGenerator:
         self.jd_documents = []
         
         
-         # Pre-initialize chains (optimization)
-        
+        # Preload required chains
         self.context_chain = self.chains.context_generator_chain()
         self.knowledge_chain = self.chains.knowledge_generator_chain()
         self.code_chain = self.chains.code_generator_chain()
-        
+        self.experience_chain = None
                      
     def jd_summarizer(self, jd_file):
         '''Will summarize the Document using the chains'''
@@ -27,9 +21,7 @@ class AnswerGenerator:
             logging.info("JD Summarization started")
             self.jd_documents = self.chains.jd_summarizer_invoke(jd_file=jd_file)
             logging.info("JD Summarization completed")
-            
-            # print (self.jd_documents)
-            return True ### only to test
+            return True
         
         except Exception as e:
             logging.info("JD Summarization Error: ", e)
@@ -44,7 +36,7 @@ class AnswerGenerator:
             logging.info("Vector Store Generation Completed")
             logging.info("Experience Chain Generation started")
             self.experience_chain = self.chains.experience_generation_chain()
-            logging.info("Experience Chain Generation Completed")
+            logging.info("Experience Chain Ready")
             return True
            
         except Exception as e:
@@ -54,48 +46,39 @@ class AnswerGenerator:
             
                  
     def answer_generator(self, job_position="", question=""):
+        """Generate an answer based on job position, JD, and the question."""
         try:
             
             ### STEP 1: Combine context_chain output with original input
             ### Merging the Input as well as output from the Context Chain
-            logging.info("Merging Context Chain started")
             merge_context_chain = RunnableLambda(lambda inputs: self.chains.merge_context(inputs["parsed"], inputs["original"]))
-            logging.info(f"Merging Context Chain Completed: \n {merge_context_chain}")
-          
-            
             
             # First, run the context_chain and capture both the parsed output and original input
-            logging.info("Combined Chain started")
-            combined_chain = RunnableLambda(lambda x: {"parsed": self.context_chain.invoke(x), "original": x}) | merge_context_chain
-            logging.info(f"Combined Chain completed \n {combined_chain}")
+            combined_chain = (
+                RunnableLambda(lambda x: {"parsed": self.context_chain.invoke(x), "original": x}) 
+                | merge_context_chain
+            )
             
             
             
             # STEP 2: Route based on context
-            logging.info("Branch Chain started")
             branch_chain = RunnableBranch(
-                
                 (lambda x: x["context"] == "Coding", self.code_chain),
                 (lambda x: x["context"] == "Knowledge", self.knowledge_chain),
                 (lambda x: x["context"] == "Experience", self.experience_chain),
                 self.knowledge_chain  # default
-            )
-            logging.info(f"Branch Chain Completed\n {branch_chain}")
+            )            
             
             
              # STEP 3: Parallel Chain
-            logging.info("Parallel Chain started")
             parallel_chain = RunnableParallel({
                 "context": RunnableLambda(lambda x: x["context"]),
                 "answer": branch_chain
             })
-            logging.info(f"Parallel Chain Completed \n {parallel_chain}")
+            
             
             # STEP 4 : Full chain
-            logging.info("Final Chain started")
-            final_chain = combined_chain | parallel_chain
-            logging.info(f"Final Chain Completed \n {final_chain}")
-            
+            final_chain = combined_chain | parallel_chain          
         
         
             ## Invoke the chain with proper input structure
